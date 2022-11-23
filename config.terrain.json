@@ -14,6 +14,12 @@
       "URL": "https://phoenix-lcd.terra.dev"
     }
   },
+  "classic": {
+    "_connection": {
+      "chainID": "columbus-5",
+      "URL": "https://columbus-lcd.terra.dev"
+    }
+  },
   "testnet": {
     "_connection": {
       "chainID": "pisco-1",
