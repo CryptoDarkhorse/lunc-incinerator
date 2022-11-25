@@ -4,12 +4,11 @@ use crate::error::ContractError;
 use crate::msg::{CommunityRole, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::{Config, CONFIG, NONCE};
 use bech32::ToBase32;
-use cosmwasm_crypto::secp256k1_recover_pubkey;
+// use cosmwasm_crypto::secp256k1_recover_pubkey;
 #[cfg(not(feature = "library"))]
-use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    coins, to_binary, Addr, BankMsg, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
-    StdResult, SubMsg, Uint128,
+    coins, entry_point, to_binary, Addr, BankMsg, Binary, CosmosMsg, Deps, DepsMut, Env,
+    MessageInfo, Response, StdResult, SubMsg, Uint128,
 };
 use cw2::set_contract_version;
 use ripemd::{Digest, Ripemd160};
@@ -96,16 +95,18 @@ pub fn deposit(deps: Deps, _env: Env, info: MessageInfo) -> Result<Response, Con
     }
 }
 
-fn verify_signature(payload: String, signature: String, owner_address: String) -> bool {
+fn verify_signature(deps: Deps, payload: String, signature: String, owner_address: String) -> bool {
     for recovery_param in 0..2 {
         let payload_hash = hex::decode(sha256::digest(payload.clone())).unwrap();
 
-        let key = secp256k1_recover_pubkey(
-            &payload_hash,
-            &hex::decode(signature.clone()).unwrap(),
-            recovery_param,
-        )
-        .unwrap();
+        let key = deps
+            .api
+            .secp256k1_recover_pubkey(
+                &payload_hash,
+                &hex::decode(signature.clone()).unwrap(),
+                recovery_param,
+            )
+            .unwrap();
 
         // compress key
         let mut compressed_key = vec![0u8; 33];
@@ -150,7 +151,7 @@ pub fn withdraw(
 
     let payload = fmt::format(format_args!("{0}|{1}|{2}", recipient, amount, nonce));
 
-    if !verify_signature(payload, signature, config.community_owner) {
+    if !verify_signature(deps.as_ref(), payload, signature, config.community_owner) {
         return Err(ContractError::Unauthorized {});
     }
 
