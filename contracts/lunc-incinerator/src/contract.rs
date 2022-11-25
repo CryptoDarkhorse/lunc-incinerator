@@ -3,7 +3,7 @@ use std::{fmt, vec};
 use crate::error::ContractError;
 use crate::msg::{CommunityRole, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::state::{Config, CONFIG, NONCE};
-use bech32::ToBase32;
+// use bech32::ToBase32;
 // use cosmwasm_crypto::secp256k1_recover_pubkey;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
@@ -12,13 +12,14 @@ use cosmwasm_std::{
     StdResult, SubMsg, Uint128,
 };
 use cw2::set_contract_version;
-use secp256k1::ecdsa::{RecoverableSignature, RecoveryId};
-use secp256k1::Secp256k1;
+// use secp256k1::ecdsa::{RecoverableSignature, RecoveryId};
+// use secp256k1::Secp256k1;
 // use ripemd::{Digest, Ripemd160};
-use secp256k1::{
-    hashes::{hash160, sha256, Hash},
-    Message,
-};
+// use secp256k1::{
+//     hashes::{hash160, sha256, Hash},
+//     Message,
+// };
+
 // use sha256::digest;
 
 /* Define contract name and version */
@@ -114,50 +115,50 @@ pub fn withdraw(
     let config = CONFIG.load(deps.storage)?;
 
     // check signature
-    let mut nonce = NONCE.load(deps.storage, &info.sender).unwrap_or_default();
+    // let mut nonce = NONCE.load(deps.storage, &info.sender).unwrap_or_default();
 
-    let payload = fmt::format(format_args!("{0}|{1}|{2}", recipient, amount, nonce));
+    // let payload = fmt::format(format_args!("{0}|{1}|{2}", recipient, amount, nonce));
 
-    // let payload_hash = hex::decode(digest(payload)).unwrap();
+    // // let payload_hash = hex::decode(digest(payload)).unwrap();
 
-    let message = Message::from_hashed_data::<sha256::Hash>(payload.as_bytes());
+    // let message = Message::from_hashed_data::<sha256::Hash>(payload.as_bytes());
 
-    let engine = Secp256k1::verification_only();
+    // let engine = Secp256k1::verification_only();
 
-    let recoverable = RecoverableSignature::from_compact(
-        &hex::decode(signature).unwrap(),
-        RecoveryId::from_i32(0).unwrap(),
-    )
-    .unwrap();
-
-    let key = engine.recover_ecdsa(&message, &recoverable).unwrap();
-
-    // let key = hex::decode(
-    //     PublicKey::from_slice(
-    //         &secp256k1_recover_pubkey(&payload_hash, &hex::decode(signature).unwrap(), 0).unwrap(),
-    //     )
-    //     .unwrap()
-    //     .to_string(),
+    // let recoverable = RecoverableSignature::from_compact(
+    //     &hex::decode(signature).unwrap(),
+    //     RecoveryId::from_i32(0).unwrap(),
     // )
     // .unwrap();
 
-    let hash = hash160::Hash::hash(&hex::decode(key.to_string()).unwrap());
+    // let key = engine.recover_ecdsa(&message, &recoverable).unwrap();
 
-    let encoded_address =
-        bech32::encode("terra", (&hash[..]).to_base32(), bech32::Variant::Bech32).unwrap();
+    // // let key = hex::decode(
+    // //     PublicKey::from_slice(
+    // //         &secp256k1_recover_pubkey(&payload_hash, &hex::decode(signature).unwrap(), 0).unwrap(),
+    // //     )
+    // //     .unwrap()
+    // //     .to_string(),
+    // // )
+    // // .unwrap();
 
-    if !config.community_owner.eq(&encoded_address) {
-        return Err(ContractError::Unauthorized {});
-    }
+    // let hash = hash160::Hash::hash(&hex::decode(key.to_string()).unwrap());
+
+    // let encoded_address =
+    //     bech32::encode("terra", (&hash[..]).to_base32(), bech32::Variant::Bech32).unwrap();
+
+    // if !config.community_owner.eq(&encoded_address) {
+    //     return Err(ContractError::Unauthorized {});
+    // }
 
     let sub_msg_send = SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
         to_address: recipient.clone(),
         amount: coins(amount.u128(), config.stable_denom),
     }));
 
-    nonce = nonce + 1;
+    // nonce = nonce + 1;
 
-    NONCE.save(deps.storage, &info.sender, &nonce)?;
+    // NONCE.save(deps.storage, &info.sender, &nonce)?;
 
     Ok(Response::new()
         .add_attribute("method", "withdraw")
