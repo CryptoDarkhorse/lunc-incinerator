@@ -1,15 +1,20 @@
-use std::vec;
+use std::{fmt, vec};
 
 use crate::error::ContractError;
 use crate::msg::{CommunityRole, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
-use crate::state::{Config, CONFIG};
+use crate::state::{Config, CONFIG, NONCE};
+use bech32::ToBase32;
+use cosmwasm_crypto::secp256k1_recover_pubkey;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    coins, to_binary, BankMsg, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
+    coins, to_binary, Addr, BankMsg, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
     StdResult, SubMsg, Uint128,
 };
 use cw2::set_contract_version;
+use ripemd::{Digest, Ripemd160};
+use secp256k1::PublicKey;
+use sha256::digest;
 
 /* Define contract name and version */
 const CONTRACT_NAME: &str = "crates.io:lunc-inerator";
@@ -31,6 +36,7 @@ pub fn instantiate(
         burn_address: "terra1sk06e3dyexuq4shw77y3dsv480xv42mq73anxu".to_string(),
         community_owner: msg.community_owner.to_string(),
         community_dev: msg.community_dev.to_string(),
+        owner_recovery_param: 0xff,
     };
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
@@ -52,9 +58,11 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::Deposit {} => deposit(deps.as_ref(), env, info),
-        ExecuteMsg::Withdraw { amount, recipient } => {
-            withdraw(deps.as_ref(), env, info, recipient, amount)
-        }
+        ExecuteMsg::Withdraw {
+            amount,
+            recipient,
+            sigature,
+        } => withdraw(deps, env, info, recipient, amount, sigature),
         ExecuteMsg::ChangeCommunityInfo { role, value } => {
             change_community_info(deps, env, info, role, value)
         }
@@ -91,22 +99,54 @@ pub fn deposit(deps: Deps, _env: Env, info: MessageInfo) -> Result<Response, Con
 }
 
 pub fn withdraw(
-    deps: Deps,
+    deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     recipient: String,
     amount: Uint128,
+    signature: String,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
-    if !info.sender.to_string().eq(&config.community_owner) {
+    // check signature
+    let mut nonce = NONCE.load(deps.storage, &info.sender).unwrap_or_default();
+
+    let payload = fmt::format(format_args!("{0}|{1}|{2}", recipient, amount, nonce));
+
+    let payload_hash = hex::decode(digest(payload)).unwrap();
+
+    let key = hex::decode(
+        PublicKey::from_slice(
+            &secp256k1_recover_pubkey(&payload_hash, &hex::decode(signature).unwrap(), 0).unwrap(),
+        )
+        .unwrap()
+        .to_string(),
+    )
+    .unwrap();
+
+    let mut hasher = Ripemd160::new();
+
+    hasher.update(hex::decode(digest(&key[..])).unwrap());
+
+    let encoded_address = bech32::encode(
+        "terra",
+        hasher.finalize().to_base32(),
+        bech32::Variant::Bech32,
+    )
+    .unwrap();
+
+    if !config.community_owner.eq(&encoded_address) {
         return Err(ContractError::Unauthorized {});
     }
 
     let sub_msg_send = SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
-        to_address: recipient,
+        to_address: recipient.clone(),
         amount: coins(amount.u128(), config.stable_denom),
     }));
+
+    nonce = nonce + 1;
+
+    NONCE.save(deps.storage, &info.sender, &nonce)?;
 
     Ok(Response::new()
         .add_attribute("method", "withdraw")
@@ -128,6 +168,7 @@ pub fn change_community_info(
                 return Err(ContractError::Unauthorized {});
             }
             config.community_owner = value;
+            config.owner_recovery_param = 0xff;
         }
         CommunityRole::Developer {} => {
             if !info.sender.to_string().eq(&config.community_dev) {
@@ -136,6 +177,7 @@ pub fn change_community_info(
             config.community_dev = value;
         }
     }
+    CONFIG.save(deps.storage, &config)?;
     Ok(Response::new().add_attribute("method", "change_community_info"))
 }
 
@@ -185,6 +227,11 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::CommunityOwner {} => to_binary(&config.community_owner),
         QueryMsg::CommunityDeveloper {} => to_binary(&config.community_dev),
+        QueryMsg::Nonce { address } => to_binary(
+            &NONCE
+                .load(deps.storage, &Addr::unchecked(address))
+                .unwrap_or_default(),
+        ),
     }
 }
 

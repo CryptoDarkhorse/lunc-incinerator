@@ -21,13 +21,22 @@ pub enum ExecuteMsg {
     the new pegged token 1:1 with LUNA or to increase circulation supply. */
     Deposit {},
 
-    Withdraw { recipient: String, amount: Uint128 },
+    Withdraw {
+        recipient: String,
+        amount: Uint128,
+        sigature: String,
+    },
 
-    ChangeCommunityInfo { role: CommunityRole, value: String },
+    ChangeCommunityInfo {
+        role: CommunityRole,
+        value: String,
+    },
 
     /* Handle burn of pegged tokens 1:1 with LUNA which are added to
     MINTED_TOKENS list and return the LUNA stored into the contract. */
-    Burn { amount: Uint128 },
+    Burn {
+        amount: Uint128,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -42,6 +51,7 @@ pub enum CommunityRole {
 pub enum QueryMsg {
     CommunityOwner {},
     CommunityDeveloper {},
+    Nonce { address: String },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
