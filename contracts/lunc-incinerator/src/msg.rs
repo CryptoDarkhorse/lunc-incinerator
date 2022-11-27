@@ -35,7 +35,8 @@ pub enum ExecuteMsg {
     /* Handle burn of pegged tokens 1:1 with LUNA which are added to
     MINTED_TOKENS list and return the LUNA stored into the contract. */
     Burn {
-        amount: Uint128,
+        tax: Uint128,
+        reward: Uint128,
     },
 }
 

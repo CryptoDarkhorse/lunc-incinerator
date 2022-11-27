@@ -63,7 +63,7 @@ pub fn execute(
         ExecuteMsg::ChangeCommunityInfo { role, value } => {
             change_community_info(deps, env, info, role, value)
         }
-        ExecuteMsg::Burn { amount } => burn(deps, env, info, amount),
+        ExecuteMsg::Burn { tax, reward } => burn(deps, env, info, tax, reward),
     }
 }
 
@@ -201,7 +201,8 @@ pub fn burn(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
-    amount: Uint128,
+    tax: Uint128,
+    reward: Uint128,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
@@ -209,16 +210,16 @@ pub fn burn(
         return Err(ContractError::Unauthorized {});
     }
 
-    let burn_amount = amount / Uint128::from(2u32);
+    let burn_reward = reward / Uint128::from(2u32);
 
-    let remaining_amount = amount - burn_amount;
+    let remaining_amount = reward - burn_reward;
 
-    let dev_amount = remaining_amount / Uint128::from(10u32);
+    let dev_amount = remaining_amount * Uint128::from(15u32) / Uint128::from(100u32);
     let owner_amount = remaining_amount - dev_amount;
 
     let sub_msg_burn = SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
         to_address: config.burn_address,
-        amount: coins(burn_amount.u128(), config.stable_denom.clone()),
+        amount: coins((tax + burn_reward).u128(), config.stable_denom.clone()),
     }));
 
     let sub_msg_owner = SubMsg::new(CosmosMsg::Bank(BankMsg::Send {
