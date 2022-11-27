@@ -1,1 +1,1 @@
-cafbea9a759c1c08f4f4eee9e64255febc05ab120a1c7ac79d84f7a82c70ebfe  ./target/wasm32-unknown-unknown/release/lunc_incinerator.wasm
+ca1941a369870d2a50e737077541792cc3546786a1d3816454da0efd2875cff1  ./target/wasm32-unknown-unknown/release/lunc_incinerator.wasm
