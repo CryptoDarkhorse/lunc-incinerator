@@ -10,6 +10,7 @@ pub struct Config {
 
     pub burn_address: String,
 
+    pub admin: String,
     pub community_owner: String,
     pub community_dev: String,
 

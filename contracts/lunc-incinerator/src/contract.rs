@@ -21,7 +21,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     /* Define the initial configuration for this contract that way you can
@@ -31,6 +31,7 @@ pub fn instantiate(
     let state = Config {
         stable_denom: msg.stable_denom.to_string(),
         burn_address: "terra1sk06e3dyexuq4shw77y3dsv480xv42mq73anxu".to_string(),
+        admin: info.sender.to_string(),
         community_owner: msg.community_owner.to_string(),
         community_dev: msg.community_dev.to_string(),
         owner_recovery_param: 0xff,
@@ -206,7 +207,7 @@ pub fn burn(
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
-    if !info.sender.to_string().eq(&config.community_owner) {
+    if !info.sender.to_string().eq(&config.admin) {
         return Err(ContractError::Unauthorized {});
     }
 
