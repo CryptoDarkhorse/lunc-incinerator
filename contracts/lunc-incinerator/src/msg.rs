@@ -50,6 +50,7 @@ pub enum CommunityRole {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
+    ContractAdmin {},
     CommunityOwner {},
     CommunityDeveloper {},
     Nonce { address: String },

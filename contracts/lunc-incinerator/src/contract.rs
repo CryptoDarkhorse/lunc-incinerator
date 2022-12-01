@@ -243,6 +243,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     let config = CONFIG.load(deps.storage)?;
 
     match msg {
+        QueryMsg::ContractAdmin {} => to_binary(&config.admin),
         QueryMsg::CommunityOwner {} => to_binary(&config.community_owner),
         QueryMsg::CommunityDeveloper {} => to_binary(&config.community_dev),
         QueryMsg::Nonce { address } => to_binary(
