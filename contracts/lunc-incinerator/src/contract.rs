@@ -113,11 +113,10 @@ fn verify_signature(deps: Deps, payload: String, signature: String, owner_addres
         let mut compressed_key = vec![0u8; 33];
         if key[64] % 2 == 0 {
             compressed_key[0] = 2;
-            compressed_key[1..33].clone_from_slice(&key[1..33]);
         } else {
             compressed_key[0] = 3;
-            compressed_key[1..33].clone_from_slice(&key[33..65])
         }
+        compressed_key[1..33].clone_from_slice(&key[1..33]);
 
         // get address from public key
         let mut hasher = Ripemd160::new();
