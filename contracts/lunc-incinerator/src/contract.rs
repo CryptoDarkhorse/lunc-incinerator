@@ -152,7 +152,7 @@ pub fn withdraw(
 
     let payload = fmt::format(format_args!("{0}|{1}|{2}", recipient, amount, nonce));
 
-    if !verify_signature(deps.as_ref(), payload, signature, config.community_owner) {
+    if !verify_signature(deps.as_ref(), payload, signature, config.admin) {
         return Err(ContractError::Unauthorized {});
     }
 
